@@ -31,7 +31,7 @@
     document.querySelector('body').appendChild(canvas)
 
     const gl = canvas.getContext('webgl')
-    
+
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)
     const vertexShaderSource = document.querySelector('#vertexShader').innerHTML
     gl.shaderSource(vertexShader, vertexShaderSource)
@@ -57,29 +57,29 @@
 
     //用上一步设置的清空画布颜色清空画布。
     gl.clear(gl.COLOR_BUFFER_BIT);
-    let positions = [1,0, 0,1, 0,0];
+    let positions = [1, 0, 0, 1, 0, 0];
 
-    const a_Position = gl.getAttribLocation(program,'a_Position')
+    const a_Position = gl.getAttribLocation(program, 'a_Position')
     // 创建缓冲区
     const buffer = gl.createBuffer();
     // 绑定缓存区
     // 绑定该缓冲区为 WebGL 当前缓冲区 gl.ARRAY_BUFFER
-    gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     // 最后一个参数 gl.STATIC_DRAW 提示 WebGL 我们不会频繁改变缓冲区中的数据，WebGL 会根据这个参数做一些优化处理。
-    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(positions),gl.STATIC_DRAW)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
     // 告诉 WebGL 如何从之前创建的缓冲区中获取数据，并且传递给顶点着色器中的 a_Position 属性。 那么，首先启用对应属性 a_Position：
     gl.enableVertexAttribArray(a_Position)
     // 设置从缓冲区里取数据的方式
     //每次取两个数据
     const size = 2;
     //每个数据的类型是32位浮点型
-    const type = gl.FLOAT;  
+    const type = gl.FLOAT;
     //不需要归一化数据
-    const normalize = false; 
+    const normalize = false;
     // 每次迭代运行需要移动数据数 * 每个数据所占内存 到下一个数据开始点。
-    const stride = 0;   
+    const stride = 0;
     // 从缓冲起始位置开始读取     
-    const offset = 0; 
+    const offset = 0;
     // 将 a_Position 变量获取数据的缓冲区指向当前绑定的 buffer。
     // 我们通过 gl.vertexAttribPointer 将属性绑定到了当前的缓冲区，即使之后我们使用 bindBuffer 绑定到其他缓冲区时，a_Position 也依然会从 buffer 这个缓冲区中获取数据。
     /**
@@ -93,18 +93,17 @@
      * offset：在每个步长的数据里，目标属性需要偏移多少字节开始读取。在我们的例子中，buffer 只为 a_Position 一个属性服务，所以 offset 为 0 * 4 = 0。
      * 
      * */
-    gl.vertexAttribPointer(a_Position,size,type,normalize,stride,offset)
+    gl.vertexAttribPointer(a_Position, size, type, normalize, stride, offset)
     // 图元 设置为三角形
     const primitiveType = gl.TRIANGLES;
     // 从顶点数组的开始位置获取数据
-    const _offset = 0 ;
-    
+    const _offset = 0;
+
     const _count = 3;
 
-    const u_Color = gl.getUniformLocation(program,'u_Color');
-    gl.uniform4f(u_Color,222,111,22,1.0)
-    gl.drawArrays(primitiveType,_offset,_count)
-  
+    const u_Color = gl.getUniformLocation(program, 'u_Color');
+    gl.uniform4f(u_Color, 222, 111, 22, 1.0)
+    gl.drawArrays(primitiveType, _offset, _count)
   </script>
 </body>
 

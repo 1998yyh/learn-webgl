@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- 使用三角带 -->
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <script type="shader-source" id="vertexShader">
+    //设置浮点数精度为中等精度。
+    precision mediump float;
+    //接收顶点坐标 (x, y)
+    attribute vec2 a_Position;
+    //接收浏览器窗口尺寸(width, height)
+    attribute vec2 a_Screen_Size;
+    //接收 JavaScript 传递的顶点颜色
+    attribute vec4 a_Color;
+    //传往片元着色器的颜色。
+    varying vec4 v_Color;
+    void main(){
+      vec2 position = (a_Position / a_Screen_Size) * 2.0 - 1.0;
+      position = position * vec2(1.0,-1.0);
+      gl_Position = vec4(position, 0, 1);
+      v_Color = a_Color;
+    }
+  </script>
+
+  <script type="shader-source" id="fragmentShader">
+    //设置浮点数精度为中等。
+    precision mediump float;
+    //接收 JavaScript 传过来的颜色值（rgba）。
+    varying vec4 v_Color;
+    void main(){
+      vec4 color = v_Color / vec4(255, 255, 255, 1);
+      gl_FragColor = color;
+    }
+  </script>
+
+  <script>
+    const canvas = document.createElement('canvas')
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const gl = canvas.getContext('webgl')
+    document.body.appendChild(canvas)
+
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)
+    const vertexShaderSource = document.querySelector('#vertexShader').innerHTML;
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader)
+
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+    const fragmentShaderSource = document.querySelector('#fragmentShader').innerHTML;
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader)
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader)
+    gl.attachShader(program, fragmentShader)
+    gl.linkProgram(program)
+
+    gl.useProgram(program)
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    const a_Screen_Size = gl.getAttribLocation(program, 'a_Screen_Size')
+    gl.vertexAttrib2f(a_Screen_Size, canvas.width, canvas.height)
+    const a_Position = gl.getAttribLocation(program, 'a_Position')
+    const a_Color = gl.getAttribLocation(program, 'a_Color')
+
+    gl.enableVertexAttribArray(a_Position)
+    gl.enableVertexAttribArray(a_Color)
+
+    const positions = [
+    30, 300, 255, 0, 0, 1,   //V0  
+    300, 300, 255, 0, 0, 1,  //V1
+    30, 30, 255, 0, 0, 1,    //V2
+    300, 30, 0, 255, 0, 1    //V3
+
+    ]
+
+
+
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 24, 0);
+    gl.vertexAttribPointer(a_Color, 4, gl.FLOAT, false, 24, 8);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+
+    const indices = [0, 1, 2, 0, 2, 3];
+    const indicesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW)
+
+    //设置清屏颜色为黑色。
+    gl.clearColor(0, 0, 0, 1);
+
+    /*渲染*/
+    function render(gl) {
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      //利用索引方式进行绘制
+      // mode：指定绘制图元的类型，是画点，还是画线，或者是画三角形。
+      // count：指定绘制图形的顶点个数。
+      // type：指定索引缓冲区中的值的类型,常用的两个值：gl.UNSIGNED_BYTE和gl.UNSIGNED_SHORT，前者为无符号8位整数值，后者为无符号16位整数。
+      // offset：指定索引数组中开始绘制的位置，以字节为单位。
+      // gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0); // 此处gl.UNSIGNED
+      // gl.drawArrays(gl.TRIANGLES,0, positions.length / 6);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0,positions.length / 6);
+    }
+    render(gl);
+  </script>
+</body>
+
+</html>
