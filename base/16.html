@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <!-- 封装绘制方法 -->
+  <script>
+    //模型类
+    function Model(bufferInfo, uniforms) {
+      this.uniforms = uniforms || {};
+      this.u_Matrix = matrix.identity();
+      this.bufferInfo = bufferInfo || {};
+      // 偏移
+      this.translation = [0, 0, 0];
+      // 旋转角度
+      this.rotation = [0, 0, 0];
+      // 缩放
+      this.scalation = [1, 1, 1];
+    }
+
+    bufferInfo = {
+    attributes:{
+        a_Positions: {
+            buffer: buffer,
+            type: gl.FLOAT,
+            normalize: false,
+            numsPerElement: 4,
+        },
+        a_Colors:{
+            buffer:buffer,
+            type: gl.UNSIGNED_BYTE,
+            normalize: true,
+            numsPerElement: 4
+        },
+        a_Normals:{
+            buffer:buffer,
+            type: gl.FLOAT,
+            normalize: false,
+            numsPerElement: 3
+        },
+        a_Texcoords:{
+            buffer:buffer,
+            type: gl.FLOAT,
+            normalize: false,
+            numsPerElement: 2
+        }
+    },
+    indices:[],
+    elementsCount: 30
+}
+  </script>
+</body>
+
+</html>
