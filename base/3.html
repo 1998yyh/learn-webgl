@@ -57,7 +57,7 @@
 
     //用上一步设置的清空画布颜色清空画布。
     gl.clear(gl.COLOR_BUFFER_BIT);
-    let positions = [1, 0, 0, 1, 0, 0];
+    let positions = [-1, -1, 1, 1, 1, 0];
 
     const a_Position = gl.getAttribLocation(program, 'a_Position')
     // 创建缓冲区

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script type="shader-source" id="vertexShader">
+    precision mediump float;
+    attribute vec4 a_Position;
+    void main(){
+      gl_Position = a_Position;
+    }
+  </script>
+
+  <script type="shader-source" id="fragmentShader">
+    void main(){
+      //设置像素颜色为红色
+      gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
+    }
+  </script>
+  <script src="../util.js"></script>
+  <script>
+    const canvas = document.createElement('canvas')
+    document.body.appendChild(canvas)
+    const gl = canvas.getContext('webgl');
+
+    const program = createSimpleProgram(gl);
+    gl.useProgram(program)
+    //设置清空画布颜色为黑色。
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    //用上一步设置的清空画布颜色清空画布。
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    
+    const a_Position = gl.getAttribLocation(program,'a_Position')
+
+    const positions = [1,1,1,0,0,0]
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,buffer)
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(positions),gl.STATIC_DRAW)
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.enableVertexAttribArray(a_Position)
+    gl.vertexAttribPointer(a_Position,2,gl.FLOAT,false,0,0)
+
+    const primitiveType = gl.TRIANGLES;
+    // 从顶点数组的开始位置获取数据
+    const _offset = 0;
+
+    const _count = 3;
+
+    gl.drawArrays(primitiveType, _offset, _count)
+
+
+  </script>
+
+</body>
+</html>
