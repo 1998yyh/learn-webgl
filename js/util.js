@@ -26,3 +26,4 @@ function createSimpleProgram(gl){
 
   return program
 }
+

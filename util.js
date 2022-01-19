@@ -1,3 +1,18 @@
+/**
+ * 
+ * @returns {WebGLRenderingContext} GL
+ */
+function createCanvas(){
+  const canvas = document.createElement('canvas')
+  const wWidth = window.innerWidth;
+  const wHeight = window.innerHeight;
+  canvas.width = wWidth;
+  canvas.height = wHeight;
+  document.body.appendChild(canvas)
+  const gl = canvas.getContext('webgl');
+  return gl;
+}
+
 function resizeCanvas(canvas){
   const displayWidth = canvas.clientWidth;
   const displayHeight = canvas.clientHeight
@@ -7,7 +22,6 @@ function resizeCanvas(canvas){
     canvas.width = displayWidth;
     canvas.height = displayHeight;
   }
-
 }
 
 function createSimpleProgram(gl,vertexShaderElement = '#vertexShader',fragmentShaderElement = '#fragmentShader'){
@@ -28,6 +42,8 @@ function createSimpleProgram(gl,vertexShaderElement = '#vertexShader',fragmentSh
   const success = gl.getProgramParameter(program,gl.LINK_STATUS)
   if(success){
     return program
+  }else{
+    console.log('链接失败');
   }
 }
 
@@ -55,4 +71,13 @@ function createFragmentShader(gl,source){
   gl.shaderSource(fragmentShader,source)
   gl.compileShader(fragmentShader)
   return fragmentShader
+}
+
+
+function randomColor(){
+  const r = Math.floor(Math.random()*255);
+  const g = Math.floor(Math.random()*255);
+  const b = Math.floor(Math.random()*255);
+  const a = Math.random().toFixed(2)
+  return {r,g,b,a}
 }
