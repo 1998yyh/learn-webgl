@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <script type="shader-source" id="vertexShader">
+    precision mediump float;
+  
+      attribute vec2 a_position;
+      attribute vec2 a_canvas_Size;
+
+      attribute vec2 a_texCoord;
+      varying vec2 v_texCoord;
+  
+      void main(){
+        vec2 position = (a_position / a_canvas_Size) * 2.0 - 1.0;
+        position = position * vec2(1.0,-1.0);
+        gl_Position = vec4(position,0,1);
+        v_texCoord = a_texCoord;
+      }
+    </script>
+  <!-- 我们可以通过texture2d().rgba rbga 等切换 -->
+  <script type="shader-source" id="fragmentShader">
+    precision mediump float;
+  
+    varying vec2 v_texCoord;
+
+    uniform sampler2D u_image;
+    uniform vec2 u_textureSize;
+    uniform float u_kernel[9];
+    uniform float u_kernelWeight;
+
+    void main(){
+      vec2 onePixel = vec2(1.0,1.0) / u_textureSize;
+      vec4 colorSum = 
+      texture2D(u_image, v_texCoord + onePixel * vec2(-1, -1)) * u_kernel[0] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 0, -1)) * u_kernel[1] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 1, -1)) * u_kernel[2] +
+      texture2D(u_image, v_texCoord + onePixel * vec2(-1,  0)) * u_kernel[3] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 0,  0)) * u_kernel[4] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 1,  0)) * u_kernel[5] +
+      texture2D(u_image, v_texCoord + onePixel * vec2(-1,  1)) * u_kernel[6] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 0,  1)) * u_kernel[7] +
+      texture2D(u_image, v_texCoord + onePixel * vec2( 1,  1)) * u_kernel[8] ;
+      gl_FragColor = vec4((colorSum / u_kernelWeight).rgb,1.0);
+    }
+  </script>
+  <script src="../util.js"></script>
+  <script>
+    const img = new Image;
+    img.src = '../images/dog.jpeg'
+    img.onload = function () {
+      const canvas = document.createElement('canvas')
+      const wWidth = window.innerWidth;
+      const wHeight = window.innerHeight;
+      canvas.width = wWidth;
+      canvas.height = wHeight;
+      document.body.appendChild(canvas)
+      const gl = canvas.getContext('webgl');
+      const program = createSimpleProgram(gl);
+      gl.useProgram(program)
+
+      /** 获取vertex中变量 */
+      const a_Position = gl.getAttribLocation(program, 'a_position')
+      const a_Canvas_Size = gl.getAttribLocation(program, 'a_canvas_Size')
+      const a_texCoord = gl.getAttribLocation(program, 'a_texCoord')
+
+      /** 创建缓冲区 并从中 获取数据 */
+      gl.vertexAttrib2f(a_Canvas_Size, canvas.width, canvas.height);
+
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+      setRectangle(gl, 0, 0, img.width, img.height)
+
+      const texCoordBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer)
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        0.0, 0.0,
+        1.0, 0.0,
+        0.0, 1.0,
+        0.0, 1.0,
+        1.0, 0.0,
+        1.0, 1.0,
+      ]), gl.STATIC_DRAW);
+      
+      // 创建两个纹理 绑定到缓冲帧
+      const textures = [];
+      const frameBuffers = [];
+      for (var i = 0; i < 2; ++i) {
+          var texture = createAndSetupTexture(gl);
+          textures.push(texture);
+      
+          // 设置纹理大小和图像大小一致
+          gl.texImage2D(
+              gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0,
+              gl.RGBA, gl.UNSIGNED_BYTE, null);
+      
+          // 创建一个帧缓冲
+          var fbo = gl.createFramebuffer();
+          frameBuffers.push(fbo);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      
+          // 绑定纹理到帧缓冲
+          gl.framebufferTexture2D(
+              gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+        }
+
+      // 创建texture
+      const texture = createAndSetupTexture(gl)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+
+      // 加载 fragment 数据
+      const u_image = gl.getUniformLocation(program,'u_image')
+      const u_textureSize = gl.getUniformLocation(program,'u_textureSize')
+      const u_kernel = gl.getUniformLocation(program,'u_kernel[0]')
+      const u_kernelWeight = gl.getUniformLocation(program,'u_kernelWeight')
+      
+      
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);  
+
+      gl.enableVertexAttribArray(a_Position)
+      gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
+      gl.vertexAttribPointer(a_Position,2,gl.FLOAT,false,0,0);
+
+      gl.enableVertexAttribArray(a_texCoord)
+      gl.bindBuffer(gl.ARRAY_BUFFER,texCoordBuffer);
+      gl.vertexAttribPointer(a_texCoord,2,gl.FLOAT,false,0,0)
+
+      gl.uniform2f(u_textureSize,img.width,img.height)
+
+      // const kernel = [
+      //   0,1,0,
+      //   1,-4,1,
+      //   0,1,0
+      // ]
+
+      const kernel = [
+        -2,-1,0,
+        -1,1,1,
+        0,1,2
+      ]
+
+    gl.uniform1fv(u_kernel, kernel);
+    gl.uniform1f(u_kernelWeight, computeKernelWeight(kernel));
+
+    gl.drawArrays(gl.TRIANGLES,0,6)
+
+    }
+
+
+    function computeKernelWeight(kernel) {
+      var weight = kernel.reduce(function (prev, curr) {
+        return prev + curr;
+      });
+      return weight <= 0 ? 1 : weight;
+    }
+
+
+    function setRectangle(gl, x, y, width, height) {
+      var x1 = x;
+      var x2 = x + width;
+      var y1 = y;
+      var y2 = y + height;
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        x1, y1,
+        x2, y1,
+        x1, y2,
+        x1, y2,
+        x2, y1,
+        x2, y2,
+      ]), gl.STATIC_DRAW);
+    }
+  </script>
+</body>
+
+</html>

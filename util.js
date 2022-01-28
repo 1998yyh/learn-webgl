@@ -2,7 +2,7 @@
  * 
  * @returns {WebGLRenderingContext} GL
  */
-function createCanvas(){
+function createCanvas() {
   const canvas = document.createElement('canvas')
   const wWidth = window.innerWidth;
   const wHeight = window.innerHeight;
@@ -13,25 +13,25 @@ function createCanvas(){
   return gl;
 }
 
-function resizeCanvas(canvas){
+function resizeCanvas(canvas) {
   const displayWidth = canvas.clientWidth;
   const displayHeight = canvas.clientHeight
 
   // 检查尺寸是否相同
-  if(canvas.width !== displayWidth || canvas.height !== displayHeight){
+  if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
     canvas.width = displayWidth;
     canvas.height = displayHeight;
   }
 }
 
-function createSimpleProgram(gl,vertexShaderElement = '#vertexShader',fragmentShaderElement = '#fragmentShader'){
+function createSimpleProgram(gl, vertexShaderElement = '#vertexShader', fragmentShaderElement = '#fragmentShader') {
   // 获取 定点着色器中源码
   const vertexShaderSource = document.querySelector(vertexShaderElement).innerHTML;
-  const vertexShader = createVertexShader(gl,vertexShaderSource)
+  const vertexShader = createVertexShader(gl, vertexShaderSource)
 
   // 获取片元着色器 
   const fragmentShaderSource = document.querySelector(fragmentShaderElement).innerHTML;
-  const fragmentShader = createFragmentShader(gl,fragmentShaderSource)
+  const fragmentShader = createFragmentShader(gl, fragmentShaderSource)
 
   const program = gl.createProgram();
   gl.attachShader(program, vertexShader)
@@ -39,10 +39,10 @@ function createSimpleProgram(gl,vertexShaderElement = '#vertexShader',fragmentSh
   gl.linkProgram(program)
 
   // 获取链接状态 
-  const success = gl.getProgramParameter(program,gl.LINK_STATUS)
-  if(success){
+  const success = gl.getProgramParameter(program, gl.LINK_STATUS)
+  if (success) {
     return program
-  }else{
+  } else {
     console.log('链接失败');
   }
 }
@@ -53,9 +53,9 @@ function createSimpleProgram(gl,vertexShaderElement = '#vertexShader',fragmentSh
  * @param {*} source 
  * @returns 
  */
-function createVertexShader(gl,source){
+function createVertexShader(gl, source) {
   const vertexShader = gl.createShader(gl.VERTEX_SHADER)
-  gl.shaderSource(vertexShader,source)
+  gl.shaderSource(vertexShader, source)
   gl.compileShader(vertexShader)
   return vertexShader
 }
@@ -66,18 +66,41 @@ function createVertexShader(gl,source){
  * @param {*} source 
  * @returns 
  */
-function createFragmentShader(gl,source){
+function createFragmentShader(gl, source) {
   const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fragmentShader,source)
+  gl.shaderSource(fragmentShader, source)
   gl.compileShader(fragmentShader)
   return fragmentShader
 }
 
 
-function randomColor(){
-  const r = Math.floor(Math.random()*255);
-  const g = Math.floor(Math.random()*255);
-  const b = Math.floor(Math.random()*255);
+function randomColor() {
+  const r = Math.floor(Math.random() * 255);
+  const g = Math.floor(Math.random() * 255);
+  const b = Math.floor(Math.random() * 255);
   const a = Math.random().toFixed(2)
-  return {r,g,b,a}
+  return {
+    r,
+    g,
+    b,
+    a
+  }
+}
+
+/**
+ * 
+ * @param {WebGlRenderingContext} gl 
+ */
+function createAndSetupTexture(gl) {
+  const texture = gl.createTexture();
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  return texture
+
 }
