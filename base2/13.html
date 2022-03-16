@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+    }
+
+    canvas {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- vertex shader -->
+  <script id="vertexShader" type="shader-source">
+    attribute vec2 a_position;
+  
+    attribute vec2 a_canvas_size;
+
+    attribute vec2 a_translation;
+
+    attribute vec2 a_rotation;
+
+    uniform vec2 u_scale;
+
+  
+    void main() {
+      vec2 scaledPosition = a_position * u_scale;
+
+      vec2 rotatedPosition = vec2(
+        scaledPosition.x * a_rotation.y + scaledPosition.y * a_rotation.x,
+        scaledPosition.y * a_rotation.y - scaledPosition.x * a_rotation.x
+      );
+
+      vec2 position = ((a_translation + rotatedPosition) / a_canvas_size) * 2.0 - 1.0;
+      position = position * vec2(1.0,-1.0);
+      gl_Position = vec4(position,0,1);
+    }
+  </script>
+  <!-- fragment shader -->
+  <script id="fragmentShader" type="shader-source">
+    precision mediump float;
+  
+      uniform vec4 u_color;
+  
+      void main() {
+        gl_FragColor = u_color;
+      }
+  </script>
+  <script src="../util.js"></script>
+  <script>
+    const canvas = document.createElement('canvas')
+    document.body.appendChild(canvas)
+    const gl = canvas.getContext('webgl');
+
+    const program = createSimpleProgram(gl);
+    gl.useProgram(program)
+    resizeCanvas(canvas)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    const a_position = gl.getAttribLocation(program, 'a_position')
+
+    const a_canvas_size = gl.getAttribLocation(program, 'a_canvas_size')
+
+    const u_color = gl.getUniformLocation(program, 'u_color')
+
+    const a_translation = gl.getAttribLocation(program, 'a_translation')
+
+    const a_rotation = gl.getAttribLocation(program, 'a_rotation')
+
+    const u_scale = gl.getUniformLocation(program,'u_scale')
+
+
+    gl.uniform2f(u_scale,0.5,0.6)
+
+    gl.vertexAttrib2f(a_canvas_size, canvas.width, canvas.height)
+
+    gl.enableVertexAttribArray(a_position)
+
+    // 创建缓冲区
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    setRectangle(gl);
+
+
+
+
+    const translation = [200, 100];
+    const rotation = [1, 0.5];
+    const width = 200;
+    const height = 60;
+    const color = [Math.random(), Math.random(), Math.random(), 1];
+    gl.vertexAttrib2fv(a_translation, translation);
+
+
+    let i = 0;
+
+    function move() {
+      i+=Math.PI/180;
+      rotation[1] = Math.sin(i);
+      rotation[0] = Math.cos(i);
+      console.log(rotation);
+
+      gl.vertexAttrib2fv(a_rotation, rotation)
+      draw();
+      // requestAnimationFrame(move)
+    }
+
+    move();
+
+    function draw() {
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform4fv(u_color, color)
+      // Draw the rectangle.
+      const primitiveType = gl.TRIANGLES;
+      const offset = 0;
+      const count = 18;
+      gl.drawArrays(primitiveType, offset, count);
+    }
+
+    function setRectangle(gl) {
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+          // 左竖
+          0, 0,
+          30, 0,
+          0, 150,
+          0, 150,
+          30, 0,
+          30, 150,
+
+          // 上横
+          30, 0,
+          100, 0,
+          30, 30,
+          30, 30,
+          100, 0,
+          100, 30,
+
+          // 中横
+          30, 60,
+          67, 60,
+          30, 90,
+          30, 90,
+          67, 60,
+          67, 90,
+
+        ]),
+        gl.STATIC_DRAW);
+    }
+  </script>
+</body>
+
+</html>

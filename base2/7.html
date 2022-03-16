@@ -58,9 +58,9 @@
   </script>
   <script src="../util.js"></script>
   <script>
-    const img = new Image;
-    img.src = '../images/dog.jpeg'
-    img.onload = function () {
+    const image = new Image;
+    image.src = '../images/dog.jpeg'
+    image.onload = function () {
       const canvas = document.createElement('canvas')
       const wWidth = window.innerWidth;
       const wHeight = window.innerHeight;
@@ -81,7 +81,7 @@
 
       const positionBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-      setRectangle(gl, 0, 0, img.width, img.height)
+      setRectangle(gl, 0, 0, image.width, image.height)
 
       const texCoordBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer)
@@ -93,69 +93,117 @@
         1.0, 0.0,
         1.0, 1.0,
       ]), gl.STATIC_DRAW);
-      
+
+      // 创建一个纹理并写入对象
+      var originalImageTexture = createAndSetupTexture(gl);
+
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
       // 创建两个纹理 绑定到缓冲帧
       const textures = [];
       const frameBuffers = [];
       for (var i = 0; i < 2; ++i) {
-          var texture = createAndSetupTexture(gl);
-          textures.push(texture);
-      
-          // 设置纹理大小和图像大小一致
-          gl.texImage2D(
-              gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0,
-              gl.RGBA, gl.UNSIGNED_BYTE, null);
-      
-          // 创建一个帧缓冲
-          var fbo = gl.createFramebuffer();
-          frameBuffers.push(fbo);
-          gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-      
-          // 绑定纹理到帧缓冲
-          gl.framebufferTexture2D(
-              gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-        }
+        const texture = createAndSetupTexture(gl);
+        textures.push(texture);
+
+        // 设置纹理大小和图像大小一致
+        gl.texImage2D(
+          gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0,
+          gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        // 创建一个帧缓冲
+        var fbo = gl.createFramebuffer();
+        frameBuffers.push(fbo);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+        // 绑定纹理到帧缓冲
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+      }
+
+      console.log(frameBuffers);
+
+      // 将要使用的效果列表
+      var effectsToApply = [
+        "gaussianBlur",
+        "emboss",
+        "gaussianBlur",
+        "unsharpen"
+      ];
 
       // 创建texture
       const texture = createAndSetupTexture(gl)
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      // 从原始图像开始
+      gl.bindTexture(gl.TEXTURE_2D, originalImageTexture);
 
       // 加载 fragment 数据
-      const u_image = gl.getUniformLocation(program,'u_image')
-      const u_textureSize = gl.getUniformLocation(program,'u_textureSize')
-      const u_kernel = gl.getUniformLocation(program,'u_kernel[0]')
-      const u_kernelWeight = gl.getUniformLocation(program,'u_kernelWeight')
-      
-      
+      const u_image = gl.getUniformLocation(program, 'u_image')
+      const u_textureSize = gl.getUniformLocation(program, 'u_textureSize')
+      const u_kernel = gl.getUniformLocation(program, 'u_kernel[0]')
+      const u_kernelWeight = gl.getUniformLocation(program, 'u_kernelWeight')
+
+
       gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);  
+      gl.clear(gl.COLOR_BUFFER_BIT);
 
       gl.enableVertexAttribArray(a_Position)
-      gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
-      gl.vertexAttribPointer(a_Position,2,gl.FLOAT,false,0,0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
 
       gl.enableVertexAttribArray(a_texCoord)
-      gl.bindBuffer(gl.ARRAY_BUFFER,texCoordBuffer);
-      gl.vertexAttribPointer(a_texCoord,2,gl.FLOAT,false,0,0)
+      gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+      gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, 0, 0)
 
-      gl.uniform2f(u_textureSize,img.width,img.height)
+      gl.uniform2f(u_textureSize, image.width, image.height)
 
-      // const kernel = [
-      //   0,1,0,
-      //   1,-4,1,
-      //   0,1,0
-      // ]
 
-      const kernel = [
-        -2,-1,0,
-        -1,1,1,
-        0,1,2
-      ]
+      // 定义一些卷积核
+      const kernels = {
+        normal: [
+          0, 0, 0,
+          0, 1, 0,
+          0, 0, 0
+        ],
+        gaussianBlur: [
+          0.045, 0.122, 0.045,
+          0.122, 0.332, 0.122,
+          0.045, 0.122, 0.045
+        ],
+        unsharpen: [
+          -1, -1, -1,
+          -1, 9, -1,
+          -1, -1, -1
+        ],
+        emboss: [
+          -2, -1, 0,
+          -1, 1, 1,
+          0, 1, 2
+        ]
+      };
 
-    gl.uniform1fv(u_kernel, kernel);
-    gl.uniform1f(u_kernelWeight, computeKernelWeight(kernel));
 
-    gl.drawArrays(gl.TRIANGLES,0,6)
+      // 循环施加每一种渲染效果
+      for (var ii = 0; ii < effectsToApply.length; ++ii) {
+        // 使用两个帧缓冲中的一个
+        setFramebuffer(frameBuffers[ii % 2], image.width, image.height);
+
+        drawWithKernel(effectsToApply[ii]);
+
+        // 下次绘制时使用刚才的渲染结果
+        gl.bindTexture(gl.TEXTURE_2D, textures[ii % 2]);
+      }
+
+      // 最后将结果绘制到画布
+      gl.uniform1f(flipYLocation, -1); // 需要绕y轴翻转
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      setFramebuffer(gl, null, canvas.width, canvas.height);
+      drawWithKernel("normal");
+
+      // gl.uniform1fv(u_kernel, kernel);
+      // gl.uniform1f(u_kernelWeight, computeKernelWeight(kernel));
+
+      // gl.drawArrays(gl.TRIANGLES, 0, 6)
 
     }
 
@@ -181,6 +229,26 @@
         x2, y1,
         x2, y2,
       ]), gl.STATIC_DRAW);
+    }
+
+
+    function setFramebuffer(gl, fbo, width, height) {
+      // 设定当前使用帧缓冲
+
+
+      // 告诉着色器分辨率是多少
+      gl.uniform2f(resolutionLocation, width, height);
+
+      // 告诉WebGL帧缓冲需要的视图大小
+      gl.viewport(0, 0, width, height);
+    }
+
+    function drawWithKernel(name) {
+      // 设置卷积核
+      gl.uniform1fv(kernelLocation, kernels[name]);
+
+      // 画出矩形
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
   </script>
 </body>

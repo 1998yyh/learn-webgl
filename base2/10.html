@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+    }
+
+    canvas {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- vertex shader -->
+  <script id="vertexShader" type="shader-source">
+    attribute vec2 a_position;
+  
+    attribute vec2 a_canvas_size;
+
+  
+    void main() {
+      vec2 position = (a_position / a_canvas_size) * 2.0 - 1.0;
+      position = position * vec2(1.0,-1.0);
+      gl_Position = vec4(position,0,1);
+    }
+  </script>
+  <!-- fragment shader -->
+  <script id="fragmentShader" type="shader-source">
+    precision mediump float;
+  
+      uniform vec4 u_color;
+  
+      void main() {
+        gl_FragColor = u_color;
+      }
+  </script>
+  <script src="../util.js"></script>
+  <script>
+    const canvas = document.createElement('canvas')
+    document.body.appendChild(canvas)
+    const gl = canvas.getContext('webgl');
+
+    const program = createSimpleProgram(gl);
+    gl.useProgram(program)
+    resizeCanvas(canvas)
+    // gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    // const positionBuffer = 
+    const a_position = gl.getAttribLocation(program, 'a_position')
+
+    const a_canvas_size = gl.getAttribLocation(program, 'a_canvas_size')
+
+    const u_color = gl.getUniformLocation(program, 'u_color')
+
+    gl.vertexAttrib2f(a_canvas_size, canvas.width, canvas.height)
+
+    gl.enableVertexAttribArray(a_position)
+
+    // 创建缓冲区
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+
+
+    const translation = [10, 15]
+    const width = 200;
+    const height = 60;
+    const color = [Math.random(), Math.random(), Math.random(), 1];
+
+
+
+    function move() {
+
+      const x = translation[0] > canvas.width - width || translation[0] < 0 ? 0 : 1;
+      const y = translation[1] > canvas.height - height || translation[1] < 0 ? 0 : 1;
+
+
+      if (x) {
+        translation[0] += 10 * x;
+      } else {
+        // translation[0] -= 10;
+      }
+
+      if (y) {
+        translation[1] += 15 * y;
+      }
+
+
+
+      draw();
+
+      requestAnimationFrame(move)
+    }
+
+    move();
+
+    function draw() {
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      setRectangle(gl, translation[0], translation[1], width, height);
+      gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0);
+
+      gl.uniform4fv(u_color, color)
+      // Draw the rectangle.
+      const primitiveType = gl.TRIANGLES;
+      const offset = 0;
+      const count = 18;
+      gl.drawArrays(primitiveType, offset, count);
+    }
+
+    function setRectangle(gl, x, y, width, height) {
+      var width = 100;
+      var height = 150;
+      var thickness = 30;
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+          // 左竖
+          x, y,
+          x + thickness, y,
+          x, y + height,
+          x, y + height,
+          x + thickness, y,
+          x + thickness, y + height,
+
+          // 上横
+          x + thickness, y,
+          x + width, y,
+          x + thickness, y + thickness,
+          x + thickness, y + thickness,
+          x + width, y,
+          x + width, y + thickness,
+
+          // 中横
+          x + thickness, y + thickness * 2,
+          x + width * 2 / 3, y + thickness * 2,
+          x + thickness, y + thickness * 3,
+          x + thickness, y + thickness * 3,
+          x + width * 2 / 3, y + thickness * 2,
+          x + width * 2 / 3, y + thickness * 3,
+        ]),
+        gl.STATIC_DRAW);
+    }
+  </script>
+</body>
+
+</html>
