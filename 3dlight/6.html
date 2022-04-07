@@ -23,13 +23,16 @@
     attribute vec4 a_position;
     attribute vec3 a_normal;
 
+    uniform vec3 u_lightWorldPosition;
+    uniform vec3 u_viewWorldPosition;
+
+    uniform mat4 u_world;
     uniform mat4 u_worldViewProjection;
     uniform mat4 u_worldInverseTranspose;
-    uniform vec3 u_lightWorldPosition;
-    uniform mat4 u_world;
 
     varying vec3 v_normal;
     varying vec3 v_surfaceToLight;
+    varying vec3 v_surfaceToView;
     void main() {
       // 将位置和矩阵相乘
       gl_Position = u_worldViewProjection * a_position;
@@ -38,6 +41,8 @@
       vec3 surfaceWorldPosition = (u_world * a_position).xyz;
       // 计算表面到光的矢量，并传递给片段着色器
       v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;
+      // 计算表面到相机的方向
+      v_surfaceToView = u_viewWorldPosition - surfaceWorldPosition;
     }
     
   </script>
@@ -47,23 +52,28 @@
 
     varying vec3 v_normal;
     varying vec3 v_surfaceToLight;
+    varying vec3 v_surfaceToView;
 
     uniform vec4 u_color;
-
-    uniform vec3 u_reverseLightDirection;
 
     void main() {
       // v_normal 是一个变量 而不是单位向量，需要规范它。
       vec3 normal = normalize(v_normal);
       // 同理
       vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+      vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+      vec3 halfVector = normalize(surfaceToLightDirection + surfaceToViewDirection);
+
       // dot 处理点乘  几何意义是 表示 向量A 在 向量B 方向上的投影与 向量B 的乘积
       float light = dot(normal, surfaceToLightDirection);
-    
+      // 
+      float specular = dot(normal, halfVector);
       gl_FragColor = u_color;
     
-      // 在灯光下 不使用透明度
+      // 只将颜色部分 和光照 相乘
       gl_FragColor.rgb *= light;
+      // 加上高光
+      gl_FragColor.rgb += specular;
     }
 </script>
   <script src="../util.js"></script>
@@ -85,10 +95,9 @@
     const u_color = gl.getUniformLocation(program, 'u_color')
     const u_worldViewProjection = gl.getUniformLocation(program, 'u_worldViewProjection')
     const u_worldInverseTranspose = gl.getUniformLocation(program, 'u_worldInverseTranspose')
-    const u_reverseLightDirection = gl.getUniformLocation(program, 'u_reverseLightDirection')
     const u_world = gl.getUniformLocation(program, 'u_world')
     const u_lightWorldPosition = gl.getUniformLocation(program, 'u_lightWorldPosition')
-    // 表面缓冲区
+    const u_viewWorldPosition = gl.getUniformLocation(program,'u_viewWorldPosition');
     const normalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer)
     setNormals(gl)
@@ -116,54 +125,34 @@
     move();
 
     function draw() {
-
-      // Tell WebGL how to convert from clip space to pixels
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-      // Clear the canvas AND the depth buffer.
-      // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-      // Turn on culling. By default backfacing triangles
-      // will be culled.
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
       gl.enable(gl.CULL_FACE);
-
       // Enable the depth buffer
       gl.enable(gl.DEPTH_TEST);
 
-      // Tell it to use our program (pair of shaders)
-      gl.useProgram(program);
+      gl.enableVertexAttribArray(a_position)
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
 
-      // Turn on the position attribute
-      gl.enableVertexAttribArray(a_position);
-
-      // Bind the position buffer.
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-      // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+      // 画线
       var size = 3; // 3 components per iteration
       var type = gl.FLOAT; // the data is 32bit floats
       var normalize = false; // don't normalize the data
       var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
       var offset = 0; // start at the beginning of the buffer
-      gl.vertexAttribPointer(
-        a_position, size, type, normalize, stride, offset);
+      gl.vertexAttribPointer(a_position, size, type, normalize, stride, offset);
 
-      // Turn on the normal attribute
-      gl.enableVertexAttribArray(a_normal);
 
-      // Bind the normal buffer.
-      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+      gl.enableVertexAttribArray(a_normal)
+      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer)
+      // 告诉法向量属性怎么从 normalBuffer (ARRAY_BUFFER) 中读取值
+      var size = 3; // 每次迭代使用3个单位的数据
+      var type = gl.FLOAT; // 单位数据类型是 32 位浮点型
+      var normalize = false; // 单位化 (从 0-255 转换到 0-1)
+      var stride = 0; // 0 = 移动距离 * 单位距离长度sizeof(type)  每次迭代跳多少距离到下一个数据
+      var offset = 0; // 从绑定缓冲的起始处开始
+      gl.vertexAttribPointer(a_normal, size, type, normalize, stride, offset)
 
-      // Tell the attribute how to get data out of normalBuffer (ARRAY_BUFFER)
-      var size = 3; // 3 components per iteration
-      var type = gl.FLOAT; // the data is 32bit floating point values
-      var normalize = false; // normalize the data (convert from 0-255 to 0-1)
-      var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-      var offset = 0; // start at the beginning of the buffer
-      gl.vertexAttribPointer(
-        a_normal, size, type, normalize, stride, offset);
-
-      // Compute the projection matrix
       var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
       var zNear = 1;
       var zFar = 2000;
@@ -189,25 +178,20 @@
       var worldInverseMatrix = m4.inverse(worldMatrix);
       var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
 
-      // Set the matrices
-      gl.uniformMatrix4fv(u_worldViewProjection, false, worldViewProjectionMatrix);
-      gl.uniformMatrix4fv(u_worldInverseTranspose, false, worldInverseTransposeMatrix);
+      gl.uniformMatrix4fv(u_worldViewProjection, false, worldViewProjectionMatrix)
+      gl.uniformMatrix4fv(u_worldInverseTranspose, false, worldInverseTransposeMatrix)
       gl.uniformMatrix4fv(u_world, false, worldMatrix);
-
-      // Set the color to use
+      // 设置使用的颜色
       gl.uniform4fv(u_color, [0.2, 1, 0.2, 1]); // green
-
-      // set the light position
+      // 设置灯管位置
       gl.uniform3fv(u_lightWorldPosition, [20, 30, 60]);
+      gl.uniform3fv(u_viewWorldPosition,camera)
 
-      // Draw the geometry.
       var primitiveType = gl.TRIANGLES;
       var offset = 0;
-      var count = 16 * 6;
+      var count = 16 * 6; // 6 triangles in the 'F', 3 points per triangle
       gl.drawArrays(primitiveType, offset, count);
-
     }
-
 
     function setGeometry(gl) {
       var positions = new Float32Array([

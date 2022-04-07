@@ -80,23 +80,33 @@
 
     gl.clear(gl.COLOR_BUFFER_BIT)
 
-    const a_position = gl.getAttribLocation(program, 'a_position')
-    const a_normal = gl.getAttribLocation(program, 'a_normal')
-    const u_color = gl.getUniformLocation(program, 'u_color')
-    const u_worldViewProjection = gl.getUniformLocation(program, 'u_worldViewProjection')
-    const u_worldInverseTranspose = gl.getUniformLocation(program, 'u_worldInverseTranspose')
-    const u_reverseLightDirection = gl.getUniformLocation(program, 'u_reverseLightDirection')
-    const u_world = gl.getUniformLocation(program, 'u_world')
-    const u_lightWorldPosition = gl.getUniformLocation(program, 'u_lightWorldPosition')
-    // 表面缓冲区
-    const normalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer)
-    setNormals(gl)
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    var normalLocation = gl.getAttribLocation(program, "a_normal");
 
-    // 创建位置缓冲区
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    // lookup uniforms
+    var worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
+    var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
+    var colorLocation = gl.getUniformLocation(program, "u_color");
+    var lightWorldPositionLocation =
+      gl.getUniformLocation(program, "u_lightWorldPosition");
+    var worldLocation =
+      gl.getUniformLocation(program, "u_world");
+    // NEW
+    // Create a buffer to put positions in
+    var positionBuffer = gl.createBuffer();
+    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // Put geometry data into buffer
     setGeometry(gl);
+
+    // Create a buffer to put normals in
+    var normalBuffer = gl.createBuffer();
+    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = normalBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    // Put normals data into buffer
+    setNormals(gl);
+
+
 
     const translation = [-150, 0, -360];
     const scale = [1, 2, 3]
@@ -134,7 +144,7 @@
       gl.useProgram(program);
 
       // Turn on the position attribute
-      gl.enableVertexAttribArray(a_position);
+      gl.enableVertexAttribArray(positionLocation);
 
       // Bind the position buffer.
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -146,10 +156,10 @@
       var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
       var offset = 0; // start at the beginning of the buffer
       gl.vertexAttribPointer(
-        a_position, size, type, normalize, stride, offset);
+        positionLocation, size, type, normalize, stride, offset);
 
       // Turn on the normal attribute
-      gl.enableVertexAttribArray(a_normal);
+      gl.enableVertexAttribArray(normalLocation);
 
       // Bind the normal buffer.
       gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
@@ -161,7 +171,7 @@
       var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
       var offset = 0; // start at the beginning of the buffer
       gl.vertexAttribPointer(
-        a_normal, size, type, normalize, stride, offset);
+        normalLocation, size, type, normalize, stride, offset);
 
       // Compute the projection matrix
       var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
@@ -190,24 +200,23 @@
       var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
 
       // Set the matrices
-      gl.uniformMatrix4fv(u_worldViewProjection, false, worldViewProjectionMatrix);
-      gl.uniformMatrix4fv(u_worldInverseTranspose, false, worldInverseTransposeMatrix);
-      gl.uniformMatrix4fv(u_world, false, worldMatrix);
+      gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
+      gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+      gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
 
       // Set the color to use
-      gl.uniform4fv(u_color, [0.2, 1, 0.2, 1]); // green
+      gl.uniform4fv(colorLocation, [0.2, 1, 0.2, 1]); // green
 
       // set the light position
-      gl.uniform3fv(u_lightWorldPosition, [20, 30, 60]);
+      gl.uniform3fv(lightWorldPositionLocation, [20, 30, 60]);
 
       // Draw the geometry.
       var primitiveType = gl.TRIANGLES;
       var offset = 0;
       var count = 16 * 6;
       gl.drawArrays(primitiveType, offset, count);
-
+    
     }
-
 
     function setGeometry(gl) {
       var positions = new Float32Array([
